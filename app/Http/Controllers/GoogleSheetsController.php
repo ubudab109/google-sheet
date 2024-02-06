@@ -2,10 +2,11 @@
 
 namespace App\Http\Controllers;
 
+use App\Services\GoogleSheetService;
 use Google\Client as GoogleClient;
 use Google\Service\Sheets;
 use Illuminate\Http\Request;
-use Google\Service\Sheets\ValueRange;
+use RealRashid\SweetAlert\Facades\Alert;
 
 class GoogleSheetsController extends Controller
 {
@@ -60,55 +61,40 @@ class GoogleSheetsController extends Controller
 
     public function addToGoogleSheet(Request $request)
     {
+        $request->validate([
+            'name' => 'required',
+            'phone' => 'required',
+            'email' => 'required',
+        ]);
         // Load the Google Sheets API client
         $client = new \Google_Client();
         $client->setAuthConfig(config_path('sheets-credentials.json'));
         $client->addScope(Sheets::SPREADSHEETS);
-        
-
         // Get the access token (you need to implement a method to get the access token)
         $accessToken = session()->get('google_access_token'); 
 
         if ($accessToken) {
-            $client->setAccessToken($accessToken);
-
-            // Create Google Sheets service
-            $sheetsService = new Sheets($client);
-
             // Spreadsheet ID 
             $spreadsheetId = '1cLfmOHwH0-3UzUxvMWzAgfcV-CUWAC2CXmBMVmsaiM4';
-
             // Sheet name
             $sheetName = 'Sheet1';
-
             // Data to be added
             $rowData = [
                 $request->input('name'),
                 $request->input('phone'),
                 $request->input('email'),
             ];
-
-            // Append data to the sheet
-            $requestBody = new ValueRange([
-                'values' => [$rowData],
-            ]);
-
-            $params = [
-                'valueInputOption' => 'RAW',
-            ];
-
-            $sheetsService->spreadsheets_values->append(
-                $spreadsheetId,
-                $sheetName,
-                $requestBody,
-                $params
-            );
-
-            return redirect()->route('google.form')->with('success', 'Data added to Google Sheet');
+            $googleSheetServices = new GoogleSheetService($accessToken, $spreadsheetId, $sheetName);
+            $googleSheetServices->storeToGoogleSheets($rowData);
+            Alert::toast('Data added to Google Sheet','success');
+            return redirect()->route('google.form');
         } else {
-            return redirect()->route('google.form')->with('error', 'Failed to authenticate with Google Sheets');
+            Alert::toast('Failed to authenticate with Google Sheets','success');
+            return redirect()->route('google.form')->withErrors([
+                'name' => 'Please provide a valid name.',
+                'phone' => 'Please provide a valid phone number.',
+                'email' => 'Please provide a valid email address.',
+            ]);
         }
-
-        return redirect()->route('google.form')->with('success', 'Data added to Google Sheet');
     }
 }
