@@ -11,6 +11,14 @@ use RealRashid\SweetAlert\Facades\Alert;
 
 class GoogleSheetsController extends Controller
 {
+    /**
+     * The function connects to a Google account using OAuth 2.0 and redirects to the Google
+     * authorization page if the access token is not available in the session.
+     * 
+     * @return \Illuminate\View\View|\Illuminate\Http\RedirectResponse a view or a redirect. If the session does not have a 'google_access_token' or if
+     * it is null, it will return a view with the generated authorization URL. Otherwise, it will
+     * redirect to the 'google.form' route.
+     */
     public function connectGoogleAccount()
     {
         $client = new GoogleClient();
@@ -26,6 +34,16 @@ class GoogleSheetsController extends Controller
         }
     }
 
+    /**
+     * The function handles the OAuth callback from Google, stores the access token in the session, and
+     * redirects the user to a form.
+     * 
+     * @param Request $request The  parameter is an instance of the Request class, which
+     * represents an HTTP request. It contains information about the request such as the request
+     * method, headers, query parameters, and form data.
+     * 
+     * @return \Illuminate\View\View|\Illuminate\Http\RedirectResponse redirect response to the "google.form" route.
+     */
     public function handleGoogleCallback(Request $request)
     {
         // Handle OAuth callback and store access token in session or database
@@ -48,6 +66,14 @@ class GoogleSheetsController extends Controller
         return redirect()->route('google.form');
     }
 
+    /**
+     * The function checks if a Google account is connected and either displays a form or redirects to
+     * connect the account.
+     * 
+     * @return \Illuminate\View\View|\Illuminate\Http\RedirectResponse view called 'form' if the Google account is connected. If the Google account is not
+     * connected, it is redirecting to a route called 'google.connect' and passing an error message
+     * 'Google account not connected. Please connect first.'
+     */
     public function showForm()
     {
         // Check if Google account is connected (use session or database)
@@ -60,6 +86,16 @@ class GoogleSheetsController extends Controller
         }
     }
 
+    /**
+     * The function `addToGoogleSheet` adds data from a form submission to a Google Sheet, and displays
+     * success or error messages accordingly.
+     * 
+     * @param Request request The  parameter is an instance of the Request class, which
+     * represents an HTTP request. It contains all the data and information about the current request,
+     * such as the request method, URL, headers, and input data.
+     * 
+     * @return \Illuminate\View\View|\Illuminate\Http\RedirectResponse redirect response to the 'google.form' route.
+     */
     public function addToGoogleSheet(Request $request)
     {
         $request->validate([
@@ -102,6 +138,17 @@ class GoogleSheetsController extends Controller
         }
     }
 
+    /**
+     * The function `getValidationErrors` validates a request's input fields for name, phone, and
+     * email, and returns any validation errors if they exist.
+     * 
+     * @param Request $request The  parameter is an instance of the Request class, which
+     * represents an HTTP request made to the server. It contains information about the request, such
+     * as the request method, headers, and input data.
+     * 
+     * @return array|null array of validation error messages if the validation fails. If the validation passes,
+     * it returns null.
+     */
     private function getValidationErrors(Request $request)
     {
         // Validate the request without stopping on first validation failure
