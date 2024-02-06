@@ -5,7 +5,6 @@ This is test project for storing data to google sheets platform
 - PHP 8.0+
 - Composer
 
-- 
 ## Installation
 - copy .env.example and change to .env
 - Run `php artisan key:generate`
