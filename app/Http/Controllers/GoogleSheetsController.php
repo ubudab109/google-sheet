@@ -6,6 +6,7 @@ use App\Services\GoogleSheetService;
 use Google\Client as GoogleClient;
 use Google\Service\Sheets;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Validator;
 use RealRashid\SweetAlert\Facades\Alert;
 
 class GoogleSheetsController extends Controller
@@ -28,7 +29,7 @@ class GoogleSheetsController extends Controller
     public function handleGoogleCallback(Request $request)
     {
         // Handle OAuth callback and store access token in session or database
-        
+
         if (!$request->has('code')) {
             return redirect()->route('google.connect')->with('error', 'Invalid state parameter');
         }
@@ -66,12 +67,9 @@ class GoogleSheetsController extends Controller
             'phone' => 'required',
             'email' => 'required',
         ]);
-        // Load the Google Sheets API client
-        $client = new \Google_Client();
-        $client->setAuthConfig(config_path('sheets-credentials.json'));
-        $client->addScope(Sheets::SPREADSHEETS);
+
         // Get the access token (you need to implement a method to get the access token)
-        $accessToken = session()->get('google_access_token'); 
+        $accessToken = session()->get('google_access_token');
 
         if ($accessToken) {
             // Spreadsheet ID 
@@ -86,15 +84,38 @@ class GoogleSheetsController extends Controller
             ];
             $googleSheetServices = new GoogleSheetService($accessToken, $spreadsheetId, $sheetName);
             $googleSheetServices->storeToGoogleSheets($rowData);
-            Alert::toast('Data added to Google Sheet','success');
+            Alert::toast('Data added to Google Sheet', 'success')->showCloseButton()->background('#007B40');
             return redirect()->route('google.form');
         } else {
-            Alert::toast('Failed to authenticate with Google Sheets','success');
-            return redirect()->route('google.form')->withErrors([
-                'name' => 'Please provide a valid name.',
-                'phone' => 'Please provide a valid phone number.',
-                'email' => 'Please provide a valid email address.',
-            ]);
+            // Only add an error for access token if validation passes
+            $errors = [];
+            
+            // Check if there are validation errors and add them to the array
+            if ($validator = $this->getValidationErrors($request)) {
+                $errors += $validator;
+                Alert::toast('Failed to submit. Please check form..!', 'error')->showCloseButton()->background('#F03D3E');
+                return redirect()->route('google.form')->withErrors($errors);
+            } else {
+                Alert::toast('Failed to authenticate with Google Sheets', 'error')->showCloseButton()->background('#F03D3E');
+                return redirect()->route('google.form');
+            }
         }
+    }
+
+    private function getValidationErrors(Request $request)
+    {
+        // Validate the request without stopping on first validation failure
+        $validator = Validator::make($request->all(), [
+            'name' => 'required',
+            'phone' => 'required',
+            'email' => 'required|email',
+        ]);
+
+        // Check if validation fails
+        if ($validator->fails()) {
+            return $validator->errors()->messages();
+        }
+
+        return null;
     }
 }
