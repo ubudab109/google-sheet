@@ -9,6 +9,7 @@ This is test project for storing data to google sheets platform
 - copy .env.example and change to .env
 - Run `php artisan key:generate`
 - Run `composer install`
+- Run `php artisan sweetalert:publish` for publishing alert 
 
 ## How to run
 - Run `php artisan serve`
