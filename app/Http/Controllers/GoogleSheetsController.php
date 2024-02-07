@@ -132,6 +132,8 @@ class GoogleSheetsController extends Controller
             if ($addToSheets['success']) {
                 Alert::toast($addToSheets['message'], 'success')->showCloseButton()->background('#007B40');
             } else {
+                $request->session()->pull('google_access_token');
+                $request->session()->pull('google_sheet_id');
                 Alert::toast($addToSheets['message'], 'error')->showCloseButton()->background('#F03D3E');
             }
             return redirect()->route('google.form');
@@ -145,6 +147,8 @@ class GoogleSheetsController extends Controller
                 Alert::toast('Failed to submit. Please check form..!', 'error')->showCloseButton()->background('#F03D3E');
                 return redirect()->route('google.form')->withErrors($errors);
             } else {
+                $request->session()->pull('google_access_token');
+                $request->session()->pull('google_sheet_id');
                 Alert::toast('Failed to authenticate with Google Sheets', 'error')->showCloseButton()->background('#F03D3E');
                 return redirect()->route('google.form');
             }

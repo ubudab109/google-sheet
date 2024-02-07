@@ -60,7 +60,7 @@ class GoogleSheetService
         } catch (\Google_Exception $err) {
             Log::info($err->getMessage());
             return [
-                'success' => true,
+                'success' => false,
                 'message' => 'Failed to submit' . $err->getMessage()
             ];
         }
