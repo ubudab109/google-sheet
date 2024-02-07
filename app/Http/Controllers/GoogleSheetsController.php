@@ -5,6 +5,8 @@ namespace App\Http\Controllers;
 use App\Services\GoogleSheetService;
 use Google\Client as GoogleClient;
 use Google\Service\Sheets;
+use Google\Service\Sheets\Spreadsheet;
+use Google\Service\Sheets\ValueRange;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
 use RealRashid\SweetAlert\Facades\Alert;
@@ -30,6 +32,7 @@ class GoogleSheetsController extends Controller
             $authUrl = $client->createAuthUrl();
             return view('first', compact('authUrl'));
         } else {
+
             return redirect(route('google.form'));
         }
     }
@@ -63,7 +66,15 @@ class GoogleSheetsController extends Controller
         // Store the access token in the session
         session(['google_access_token' => $token]);
 
-        return redirect()->route('google.form');
+        $client->setAccessToken($token);
+        $sheetServices = new GoogleSheetService($token, null, null);
+        $createSheet = $sheetServices->createSheets();
+        if ($createSheet['success']) {
+            return redirect()->route('google.form');
+        } else {
+            Alert::toast('Failed Create Sheets. '. $createSheet['message'], 'error')->showCloseButton()->background('#F03D3E');
+            return redirect()->route('google.form');
+        }
     }
 
     /**
@@ -79,7 +90,8 @@ class GoogleSheetsController extends Controller
         // Check if Google account is connected (use session or database)
         if (session()->has('google_access_token') && session()->get('google_access_token') != null) {
             // Access token is present, the Google account is connected
-            return view('form');
+            $spreadsheet = session()->get('google_sheet_id');
+            return view('form', compact('spreadsheet'));
         } else {
             // Access token is not present, the Google account is not connected
             return redirect()->route('google.connect')->with('error', 'Google account not connected. Please connect first.');
@@ -109,7 +121,7 @@ class GoogleSheetsController extends Controller
 
         if ($accessToken) {
             // Spreadsheet ID 
-            $spreadsheetId = '1cLfmOHwH0-3UzUxvMWzAgfcV-CUWAC2CXmBMVmsaiM4';
+            $spreadsheetId = session()->get('google_sheet_id');
             // Sheet name
             $sheetName = 'Sheet1';
             // Data to be added
@@ -119,13 +131,17 @@ class GoogleSheetsController extends Controller
                 $request->input('email'),
             ];
             $googleSheetServices = new GoogleSheetService($accessToken, $spreadsheetId, $sheetName);
-            $googleSheetServices->storeToGoogleSheets($rowData);
-            Alert::toast('Data added to Google Sheet', 'success')->showCloseButton()->background('#007B40');
+            $addToSheets = $googleSheetServices->storeToGoogleSheets($rowData);
+            if ($addToSheets['success']) {
+                Alert::toast($addToSheets['message'], 'success')->showCloseButton()->background('#007B40');
+            } else {
+                Alert::toast($addToSheets['message'], 'error')->showCloseButton()->background('#F03D3E');
+            }
             return redirect()->route('google.form');
         } else {
             // Only add an error for access token if validation passes
             $errors = [];
-            
+
             // Check if there are validation errors and add them to the array
             if ($validator = $this->getValidationErrors($request)) {
                 $errors += $validator;

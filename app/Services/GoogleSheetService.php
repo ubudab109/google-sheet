@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use Google\Service\Sheets;
+use Google\Service\Sheets\Spreadsheet;
 use Google\Service\Sheets\ValueRange;
 use Illuminate\Support\Facades\Log;
 
@@ -17,7 +18,7 @@ class GoogleSheetService
      * @param string $spreadsheetId The spreadsheet ID get from sheets 
      * @param string $sheetName The sheetname from sheets
      */
-    public function __construct($accessToken, $spreadsheetId, $sheetName)
+    public function __construct($accessToken, $spreadsheetId = null, $sheetName = null)
     {
         $this->spreadsheetId = $spreadsheetId;
         $this->accessToken = $accessToken;
@@ -34,7 +35,7 @@ class GoogleSheetService
      * 
      * @param array $data The `` parameter is an array that contains the values you want to store
      * in Google Sheets. Each value in the array represents a row in the spreadsheet.
-     * @throws \Google_Exception
+     * @return array
      */
     public function storeToGoogleSheets(array $data)
     {
@@ -52,9 +53,73 @@ class GoogleSheetService
                 $requestBody,
                 $params
             );
+            return [
+                'success' => true,
+                'message' => 'Data added to Google Sheet'
+            ];
         } catch (\Google_Exception $err) {
             Log::info($err->getMessage());
-            throw new \Exception($err->getMessage());
-        } 
+            return [
+                'success' => true,
+                'message' => 'Failed to submit' . $err->getMessage()
+            ];
+        }
+    }
+
+    /**
+     * The function creates a new Google Sheets spreadsheet, adds a header row and sample data, and
+     * appends it to the specified range in the sheet.
+     * 
+     * @return array
+     */
+    public function createSheets()
+    {
+        try {
+            // Create Google Sheets service
+            $sheetsService = new Sheets($this->client);
+
+            // Create a new spreadsheet
+            $spreadsheet = new Spreadsheet([
+                'properties' => [
+                    'title' => 'My Dynamic Spreadsheet ' . rand(1, 10),  // Title
+                ],
+            ]);
+
+            $spreadsheet = $sheetsService->spreadsheets->create($spreadsheet);
+
+            // Retrieve the ID of the created spreadsheet
+            $spreadsheetId = $spreadsheet->spreadsheetId;
+            session(['google_sheet_id' => $spreadsheetId]);
+
+            // Define data to be added
+            $rowData = [
+                ['Name', 'Phone', 'Email'], // Header row
+                ['John Doe', '1234567890', 'john@example.com'], // Sample data row
+            ];
+
+            // Create a ValueRange object
+            $valueRange = new ValueRange([
+                'values' => $rowData,
+            ]);
+
+            // Set the range where you want to append the data (e.g., Sheet1!A1)
+            $range = 'Sheet1!A1';
+
+            // Append data to the sheet
+            $sheetsService->spreadsheets_values->append($spreadsheetId, $range, $valueRange, [
+                'valueInputOption' => 'RAW',
+            ]);
+
+            return [
+                'success' => true,
+                'message' => 'Success Create Google Sheets',
+            ];
+        } catch (\Google_Exception $err) {
+            Log::info($err->getMessage());
+            return [
+                'success' => false,
+                'message' => $err->getMessage(),
+            ];
+        }
     }
 }
