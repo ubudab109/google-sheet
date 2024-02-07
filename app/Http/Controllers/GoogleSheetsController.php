@@ -5,8 +5,6 @@ namespace App\Http\Controllers;
 use App\Services\GoogleSheetService;
 use Google\Client as GoogleClient;
 use Google\Service\Sheets;
-use Google\Service\Sheets\Spreadsheet;
-use Google\Service\Sheets\ValueRange;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
 use RealRashid\SweetAlert\Facades\Alert;
