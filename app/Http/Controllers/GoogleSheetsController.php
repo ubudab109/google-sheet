@@ -32,7 +32,6 @@ class GoogleSheetsController extends Controller
             $authUrl = $client->createAuthUrl();
             return view('first', compact('authUrl'));
         } else {
-
             return redirect(route('google.form'));
         }
     }
